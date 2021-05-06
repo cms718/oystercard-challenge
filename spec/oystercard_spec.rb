@@ -16,8 +16,6 @@ describe Oystercard do
 
   describe '#top_up' do
     it 'can add to the balance' do
-      #subject.top_up(5)
-      #expect(subject.balance).to eq(5)
       expect{ subject.top_up(5) }.to change{ subject.balance }.by 5
     end
     it 'raises error when balance is over 90' do
@@ -26,52 +24,53 @@ describe Oystercard do
   end
 
   describe '#touch_in' do
-    it 'sets in_journey to true' do
-      subject.top_up(Oystercard::MAXIMUM_BALANCE)
-      subject.touch_in(entry_station)
-      expect(subject.in_journey?).to eq (true)
+    context 'with sufficient funds' do
+      before(:each) do
+        subject.top_up(Oystercard::MAXIMUM_BALANCE)
+        subject.touch_in(entry_station)
+      end
+      it 'saves entry_station' do
+        expect(subject.entry_station).to eq(entry_station)
+      end
+    
+      it 'sets in_journey to true' do
+        expect(subject.in_journey?).to eq (true)
+      end
     end
-    it 'raises an error when touching in with insufficient balance' do
-      expect{ subject.touch_in(entry_station) }.to raise_error "Insufficent balance"
-    end
-    it 'saves entry_station on touch_in' do
-      subject.top_up(Oystercard::MAXIMUM_BALANCE)
-      subject.touch_in(entry_station)
-      expect(subject.entry_station).to eq(entry_station)
+    context 'without sufficient funds' do
+      it 'raises an error' do
+        expect{ subject.touch_in(entry_station) }.to raise_error "Insufficent balance"
+      end
     end
   end
 
   describe '#touch_out' do
-    it 'touches out' do
-      subject.top_up(Oystercard::MAXIMUM_BALANCE)
-      subject.touch_in(entry_station)
-      subject.touch_out(exit_station)
-      expect(subject.in_journey?).to eq (false)
-    end
-    it 'deducts from the balance on touch out' do
-      subject.top_up(Oystercard::MAXIMUM_BALANCE)
-      subject.touch_in(entry_station)
-      expect { subject.touch_out(exit_station) }.to change{ subject.balance }.by(-Oystercard::MINIMUM_BALANCE)
-    end
-    it 'sets entry_station to nil' do
-      subject.top_up(Oystercard::MAXIMUM_BALANCE)
-      subject.touch_in(entry_station)
-      subject.touch_out(exit_station)
-      expect(subject.entry_station).to eq(nil)
-    end
-    it 'saves exit_station on touch_out' do
-      subject.top_up(Oystercard::MAXIMUM_BALANCE)
-      subject.touch_in(entry_station)
-      subject.touch_out(exit_station)
-      expect(subject.exit_station).to eq(exit_station)
+    context 'after touching in' do
+      before(:each) do
+        subject.top_up(Oystercard::MAXIMUM_BALANCE)
+        subject.touch_in(entry_station)
+        subject.touch_out(exit_station)
+      end
+      it 'changes in_journey to false' do
+        expect(subject.in_journey?).to eq (false)
+      end
+      it 'deducts from the balance on touch out' do
+        expect(subject.balance).to eq(89)
+      end
+      it 'sets entry_station to nil' do
+        expect(subject.entry_station).to eq(nil)
+      end
+      it 'saves exit_station' do
+        expect(subject.exit_station).to eq(exit_station)
+      end
     end
   end
-
-  it 'stores journey' do
-    subject.top_up(Oystercard::MAXIMUM_BALANCE)
-    subject.touch_in(entry_station)
-    subject.touch_out(exit_station)
-    expect(subject.journeys.include?(journey)).to eq(true)
+  describe '#journeys' do
+    it 'stores journey' do
+      subject.top_up(Oystercard::MAXIMUM_BALANCE)
+      subject.touch_in(entry_station)
+      subject.touch_out(exit_station)
+      expect(subject.journeys.include?(journey)).to eq(true)
+    end
   end
-
 end
