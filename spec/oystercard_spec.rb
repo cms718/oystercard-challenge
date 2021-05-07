@@ -3,8 +3,7 @@ require 'oystercard'
 describe Oystercard do
   let(:entry_station) { double("Station", :name => "Finsbury Park") }
   let(:exit_station) { double("Station", :name => "Bethnal Green") }
-  let(:journey) { {entry_station: entry_station, exit_station: exit_station} }
-
+  let(:journey) { double("Journey", entry_station: entry_station, exit_station: exit_station) }
   describe '.new' do
     it 'checks that default balance is zero' do
       expect(subject.balance).to eq (0)
@@ -29,13 +28,6 @@ describe Oystercard do
         subject.top_up(Oystercard::MAXIMUM_BALANCE)
         subject.touch_in(entry_station)
       end
-      it 'saves entry_station' do
-        expect(subject.entry_station).to eq(entry_station)
-      end
-    
-      it 'sets in_journey to true' do
-        expect(subject.in_journey?).to eq (true)
-      end
     end
     context 'without sufficient funds' do
       it 'raises an error' do
@@ -51,26 +43,20 @@ describe Oystercard do
         subject.touch_in(entry_station)
         subject.touch_out(exit_station)
       end
-      it 'changes in_journey to false' do
-        expect(subject.in_journey?).to eq (false)
-      end
       it 'deducts from the balance on touch out' do
         expect(subject.balance).to eq(89)
-      end
-      it 'sets entry_station to nil' do
-        expect(subject.entry_station).to eq(nil)
-      end
-      it 'saves exit_station' do
-        expect(subject.exit_station).to eq(exit_station)
       end
     end
   end
   describe '#journeys' do
+    let(:card) { Oystercard.new(journey) }
     it 'stores journey' do
-      subject.top_up(Oystercard::MAXIMUM_BALANCE)
-      subject.touch_in(entry_station)
-      subject.touch_out(exit_station)
-      expect(subject.journeys.include?(journey)).to eq(true)
+      allow(journey).to receive(:finish).with(exit_station).and_return(journey)
+      allow(journey).to receive(:start).with(entry_station).and_return(entry_station)
+      card.top_up(Oystercard::MAXIMUM_BALANCE)
+      card.touch_in(entry_station)
+      card.touch_out(exit_station)
+      expect(card.journeys.include?(journey)).to eq(true)
     end
   end
 end
